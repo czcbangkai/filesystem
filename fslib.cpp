@@ -18,10 +18,10 @@ using namespace std;
 
 
 
-ft_entry g_file_table[MAXFTSIZE];
+FtEntry g_file_table[MAXFTSIZE];
 
 
-fd_t f_open(vnode_t *vn, const char *filename, int flags) {
+fd_t f_open(Vnode *vn, const char *filename, int flags) {
 
 }
 
@@ -36,7 +36,7 @@ int find_fat(unsigned short& start, int& offset) {
 	return 1;
 }
 
-size_t 	f_read(vnode_t *vn, void *data, size_t size, int num, fd_t fd) {
+size_t 	f_read(Vnode *vn, void *data, size_t size, int num, fd_t fd) {
 	int res;
 
 	if (fd >= MAXFTSIZE) {
@@ -44,7 +44,7 @@ size_t 	f_read(vnode_t *vn, void *data, size_t size, int num, fd_t fd) {
 		return 0;
 	}
 
-	ft_entry entry = g_file_table[fd];
+	FtEntry entry = g_file_table[fd];
 	if (entry.index == -1) {
 		// errno
 		return 0;
@@ -124,7 +124,7 @@ size_t 	f_read(vnode_t *vn, void *data, size_t size, int num, fd_t fd) {
 	return i;
 }
 
-size_t 	f_write(vnode_t *vn, void *data, size_t size, int num, fd_t fd) {
+size_t 	f_write(Vnode *vn, void *data, size_t size, int num, fd_t fd) {
 	int res;
 
 	if (fd >= MAXFTSIZE) {
@@ -132,7 +132,7 @@ size_t 	f_write(vnode_t *vn, void *data, size_t size, int num, fd_t fd) {
 		return 0;
 	}
 
-	ft_entry entry = g_file_table[fd];
+	FtEntry entry = g_file_table[fd];
 	if (entry.index == -1) {
 		// errno
 		return 0;
@@ -213,3 +213,51 @@ size_t 	f_write(vnode_t *vn, void *data, size_t size, int num, fd_t fd) {
 
 	return i;
 }
+
+
+
+int f_seek(Vnode *vn, int offset, int whence, fd_t fd) {
+	if (fd >= MAXFTSIZE) {
+		//errno;
+		return -1;
+	}
+
+	FtEntry& entry = g_file_table[fd];
+	if (entry.index == -1) {
+		//errno
+		return -1;
+	}
+
+	Vnode* cur_node = entry.vn;
+
+	if (whence == S_CUR) {
+		offset += entry.offset;
+	}
+	else if (whence == S_END) {
+		offset = entry.offset - offset; 
+	}
+
+	if (offset <= 0) {
+		entry.offset = 0;
+		return 0;
+	}
+
+	if (offset >= cur_node->size) {
+		entry.offset = offset = cur_node->size;
+		return 0;
+	}
+
+	entry.offset = offset;
+	return 0;
+}
+
+
+
+int f_rewind(Vnode *vn, fd_t fd) {
+	return f_seek(vn, 0, S_SET, fd);
+}
+
+
+
+
+

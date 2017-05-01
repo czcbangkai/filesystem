@@ -7,6 +7,17 @@
 #define FATSIZE					65526
 #define BLOCKSIZE				2048
 
+#define O_READ					0x0000
+#define O_WRITE					0x0001
+#define O_RDWR					0x0002
+#define O_APPEND				0x0003
+
+#define S_SET					0
+#define S_CUR					1
+#define S_END					2
+
+
+
 
 class superblock {
 public:
@@ -15,7 +26,7 @@ public:
 	int data_offset;
 };
 
-class vnode {
+class Vnode {
 public:
 	char name[255];
 	int size;
@@ -28,7 +39,7 @@ public:
 
 
 
-class ft_entry {
+class FtEntry {
 public:
 	int index;
 	vnode* vn;
@@ -36,9 +47,21 @@ public:
 	int flag;
 };
 
+class FileTable {
+public:
+	FileTable(void);
+	~FileTable(void);
+
+	FtEntry& getFileEntry(int fd);
+	int getNextIndex(void);
+	int addFileEntry(FtEntry const& ftEntry);
+
+private:
+	vector<FtEntry> _fileTable;
+};
 
 
-class stat {
+class Stat {
 public:
 	char name[255];
 	int uid;
