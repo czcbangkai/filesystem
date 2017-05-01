@@ -3,17 +3,17 @@
 
 #include "vfs.hpp"
 
-extern ft_entry					g_file_table[MAXFTSIZE];
+extern FileTable g_file_table;
 
 
 
-fd_t 				f_open(Vnode *vn, const char *filename, int flags);
-size_t 				f_read(Vnode *vn, void *data, size_t size, int num, fd_t fd);
-size_t 				f_write(Vnode *vn, void *data, size_t size, int num, fd_t fd);
-int 				f_close(Vnode *vn, fd_t fd);
-int 				f_seek(Vnode *vn, int offset, int whence, fd_t fd);
-int 				f_rewind(Vnode *vn, fd_t fd);
-int					f_stat(Vnode *vn, Stat *buf, fd_t fd);
+int 				f_open(Vnode *vn, const char *filename, int flags);
+size_t 				f_read(Vnode *vn, void *data, size_t size, int num, int fd);
+size_t 				f_write(Vnode *vn, void *data, size_t size, int num, int fd);
+int 				f_close(Vnode *vn, int fd);
+int 				f_seek(Vnode *vn, int offset, int whence, int fd);
+int 				f_rewind(Vnode *vn, int fd);
+int					f_stat(Vnode *vn, Stat *buf, int fd);
 int					f_remove(Vnode *vn, const char *filename);
 dir_t				f_opendir(Vnode *vn, const char *filename);
 struct dirent_t*	f_readdir(Vnode *vn, dir_t* dirp);

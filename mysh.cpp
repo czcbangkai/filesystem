@@ -30,7 +30,7 @@ using namespace std;
 
 Tokenizer 				g_tokenizer(DELIM, SPECIAL_DELIM);
 unsigned short			g_FAT_table[FATSIZE];
-ft_entry				g_file_table[MAXFTSIZE];
+FileTable				g_file_table;
 int						g_disk_fd;
 int 					g_data_offset;
 

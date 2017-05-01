@@ -2,6 +2,10 @@
 #define _VFS_HPP
 
 
+#include <iostream>
+#include <string>
+#include <vector>
+
 
 #define MAXFTSIZE				10000
 #define FATSIZE					65526
@@ -18,8 +22,7 @@
 
 
 
-
-class superblock {
+class SuperBlock {
 public:
 	int blocksize;
 	int fat_offset;
@@ -28,9 +31,15 @@ public:
 
 class Vnode {
 public:
+	Vnode(void);
+	~Vnode(void);
+
 	char name[255];
+	int uid;
+	int gid;
 	int size;
-	vnode* parent;
+	Vnode* parent;
+	vector<Vnode*>* children;
 	int permission;	
 	int type;
 	unsigned int timestamp;
@@ -41,8 +50,11 @@ public:
 
 class FtEntry {
 public:
+	FtEntry(int i = -1, Vnode* vn = NULL, int offs = 0, int f = 0);
+	~FtEntry(void);
+
 	int index;
-	vnode* vn;
+	Vnode* vnode;
 	int offset;
 	int flag;
 };
@@ -52,13 +64,18 @@ public:
 	FileTable(void);
 	~FileTable(void);
 
-	FtEntry& getFileEntry(int fd);
+	FtEntry* getFileEntry(int fd);
 	int getNextIndex(void);
 	int addFileEntry(FtEntry const& ftEntry);
 
 private:
 	vector<FtEntry> _fileTable;
 };
+
+
+
+
+
 
 
 class Stat {
@@ -70,7 +87,6 @@ public:
 	int permission;
 	int type;
 	unsigned int timestamp;
-	int fatPtr;
 };
 
 
