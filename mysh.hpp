@@ -29,10 +29,11 @@ public:
 };
 
 extern Tokenizer				g_tokenizer;
-extern unsigned short			g_FAT_table[FATSIZE];
 extern int						g_disk_fd;
 extern int 						g_data_offset;
-extern superblock				g_superblock;
+extern FileTable 				g_file_table;
+extern FatTable					g_fat_table;
+extern SuperBlock				g_superblock;
 
 
 

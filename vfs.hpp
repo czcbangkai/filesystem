@@ -6,15 +6,18 @@
 #include <string>
 #include <vector>
 
+using namespace std;
+
 
 #define MAXFTSIZE				10000
 #define FATSIZE					65526
 #define BLOCKSIZE				2048
+#define USMAX					65535
 
-#define O_READ					0x0000
-#define O_WRITE					0x0001
-#define O_RDWR					0x0002
-#define O_APPEND				0x0003
+#define F_READ					0x0000
+#define F_WRITE					0x0001
+#define F_RDWR					0x0002
+#define F_APPEND				0x0003
 
 #define S_SET					0
 #define S_CUR					1
@@ -74,6 +77,19 @@ private:
 
 
 
+class FatTable {
+public:
+	FatTable(void);
+	~FatTable(void);
+
+	unsigned short getNextFreeBlock(void);
+	unsigned short& operator[](size_t i);
+	unsigned short const& operator[](size_t i) const;
+
+private:
+	vector<unsigned short> _fatTable;
+};
+
 
 
 
@@ -87,6 +103,7 @@ public:
 	int permission;
 	int type;
 	unsigned int timestamp;
+	int fatPtr;
 };
 
 

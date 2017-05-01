@@ -18,45 +18,53 @@ using namespace std;
 
 
 
+
+
 int f_open(Vnode *vn, const char *filename, int flags) {
 
+	return 0;
 }
 
-int find_fat(unsigned short& start, int& offset) {
-	int n = offset / BLOCKSIZE + (offset % BLOCKSIZE ? 1 : 0);
-	unsigned short res = start;
-	for (int i = 0; i < n - 1; i++) {
-		res = g_FAT_table[res];
+int f_close(Vnode *vn, int fd) {
+
+	return 0;
+}
+
+static int find_fat(unsigned short& start, int& offset) {
+	int n = offset / BLOCKSIZE;
+	for (int i = 0; i < n; i++) {
+		if (! start) {
+			//errno
+			return -1;
+		}
+		start = g_fat_table[start];
 	}
-	start = res;
 	offset %= BLOCKSIZE;
-	return 1;
+	return 0;
 }
 
 size_t 	f_read(Vnode *vn, void *data, size_t size, int num, int fd) {
 	int res;
 
-	if (fd >= MAXFTSIZE) {
+	FtEntry* entry = g_file_table.getFileEntry(fd);
+	if (! entry) {
+		//errno
+		return 0;
+	}
+
+	if (! (entry->flag & F_READ) || ! (entry->flag & F_RDWR)) {
 		// errno
 		return 0;
 	}
 
-	FtEntry entry = g_file_table[fd];
-	if (entry.index == -1) {
-		// errno
+	Vnode* vnode = entry->vnode;
+	unsigned short fat_pos = vnode->fatPtr;
+	int offs = entry->offset;
+
+	if (find_fat(fat_pos, offs) == -1) {
+		//errno
 		return 0;
 	}
-
-	if (! (entry.flag & READ) || ! (entry.flag & RDWR)) {
-		// errno
-		return 0;
-	}
-
-	vnode* vn = entry.vn;
-	int fat_pos = vn->fatPtr;
-	int offs = entry.offset;
-
-	find_fat(fat_pos, offs);
 
 	int i = 0, buf_pos = 0;
 	do {
@@ -75,7 +83,7 @@ size_t 	f_read(Vnode *vn, void *data, size_t size, int num, int fd) {
 
 			buf_pos += res;
 			offs += res;
-			entry.offset += res;
+			entry->offset += res;
 
 			
 		}
@@ -89,13 +97,13 @@ size_t 	f_read(Vnode *vn, void *data, size_t size, int num, int fd) {
 
 			buf_pos += res;
 			offs += res;
-			entry.offset += res;
+			entry->offset += res;
 
-			if (g_FAT_table[fat_pos] == -1) {
+			if (g_fat_table[fat_pos] == USMAX) {
 				break;
 			}
 
-			fat_pos = g_FAT_table[fat_pos];
+			fat_pos = g_fat_table[fat_pos];
 			offs = 0;
 			res = lseek(g_disk_fd, g_superblock.data_offset * fat_pos, SEEK_SET);
 			if (res == -1) {
@@ -111,7 +119,7 @@ size_t 	f_read(Vnode *vn, void *data, size_t size, int num, int fd) {
 
 			buf_pos += res;
 			offs += res;
-			entry.offset += res;
+			entry->offset += res;
 		}
 
 		i++;
@@ -124,27 +132,25 @@ size_t 	f_read(Vnode *vn, void *data, size_t size, int num, int fd) {
 size_t 	f_write(Vnode *vn, void *data, size_t size, int num, int fd) {
 	int res;
 
-	if (fd >= MAXFTSIZE) {
+	FtEntry* entry = g_file_table.getFileEntry(fd);
+	if (! entry) {
+		//errno
+		return 0;
+	}
+
+	if (! (entry->flag & F_WRITE) || ! (entry->flag & F_RDWR)) {
 		// errno
 		return 0;
 	}
 
-	FtEntry entry = g_file_table[fd];
-	if (entry.index == -1) {
-		// errno
+	Vnode* vnode = entry->vnode;
+	unsigned short fat_pos = vnode->fatPtr;
+	int offs = entry->offset;
+
+	if (find_fat(fat_pos, offs) == -1) {
+		//errno
 		return 0;
 	}
-
-	if (! (entry.flag & WRITE) || ! (entry.flag & RDWR)) {
-		// errno
-		return 0;
-	}
-
-	vnode* vn = entry.vn;
-	int fat_pos = vn->fatPtr;
-	int offs = entry.offset;
-
-	find_fat(fat_pos, offs);
 
 	int i = 0, buf_pos = 0;
 	do {
@@ -163,9 +169,8 @@ size_t 	f_write(Vnode *vn, void *data, size_t size, int num, int fd) {
 
 			buf_pos += res;
 			offs += res;
-			entry.offset += res;
+			entry->offset += res;
 
-			
 		}
 		else {
 			int size_cur_block = BLOCKSIZE - offs;
@@ -177,15 +182,19 @@ size_t 	f_write(Vnode *vn, void *data, size_t size, int num, int fd) {
 
 			buf_pos += res;
 			offs += res;
-			entry.offset += res;
+			entry->offset += res;
 
-			if (g_FAT_table[fat_pos] == -1 && size - size_cur_block > 0) {
-				int free_fat = getNextFreeBlock();
-				g_FAT_table[fat_pos] = free_fat;
-				g_FAT_table[free_fat] = -1;
+			if (g_fat_table[fat_pos] == USMAX && size - size_cur_block > 0) {
+				int free_fat = g_fat_table.getNextFreeBlock();
+				if (! free_fat) {
+					// errno
+					return i;
+				}
+				g_fat_table[fat_pos] = free_fat;
+				g_fat_table[free_fat] = USMAX;
 			}
 
-			fat_pos = g_FAT_table[fat_pos];
+			fat_pos = g_fat_table[fat_pos];
 			offs = 0;
 			res = lseek(g_disk_fd, g_superblock.data_offset * fat_pos, SEEK_SET);
 			if (res == -1) {
@@ -201,7 +210,7 @@ size_t 	f_write(Vnode *vn, void *data, size_t size, int num, int fd) {
 
 			buf_pos += res;
 			offs += res;
-			entry.offset += res;
+			entry->offset += res;
 		}
 
 		i++;
@@ -220,7 +229,7 @@ int f_seek(Vnode *vn, int offset, int whence, int fd) {
 		return -1;
 	}
 
-	Vnode* cur_node = entry->vn;
+	Vnode* cur_node = entry->vnode;
 
 	if (whence == S_CUR) {
 		offset += entry->offset;
@@ -266,6 +275,7 @@ int	f_stat(Vnode *vn, Stat *buf, int fd) {
 	buf->permission = vnode->permission;
 	buf->type = vnode->type;
 	buf->timestamp = vnode->timestamp;
+	buf->fatPtr = vnode->fatPtr;
 
 	return 0;
 }

@@ -29,11 +29,11 @@ using namespace std;
 // GLOBAL 
 
 Tokenizer 				g_tokenizer(DELIM, SPECIAL_DELIM);
-unsigned short			g_FAT_table[FATSIZE];
-FileTable				g_file_table;
 int						g_disk_fd;
 int 					g_data_offset;
-
+FileTable 				g_file_table;
+FatTable				g_fat_table;
+SuperBlock				g_superblock;
 
 
 // SIGNAL
