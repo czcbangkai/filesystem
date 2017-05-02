@@ -13,6 +13,7 @@ using namespace std;
 #define FATSIZE					65526
 #define BLOCKSIZE				2048
 #define USMAX					65535
+#define DNODESIZE				288
 
 #define F_READ					0x0000
 #define F_WRITE					0x0001
