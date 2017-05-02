@@ -42,12 +42,11 @@ public:
 	int uid;
 	int gid;
 	int size;
-	Vnode* parent;
-	vector<Vnode*>* children;
 	int permission;	
 	int type;
 	unsigned int timestamp;
 	int fatPtr;
+	Vnode* parent;
 };
 
 
