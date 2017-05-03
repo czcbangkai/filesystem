@@ -23,6 +23,7 @@
 #include "builtin.hpp"
 #include "utilities.hpp"
 #include "vfs.hpp"
+#include "fslib.hpp"
 
 using namespace std;
 
@@ -248,11 +249,29 @@ int main(int argc, char** argvs) {
 	}
 
 
+	int fd = f_open("~/test.txt", F_READ);
+	if (fd == -1) {
+		cout << "bad fd: " << fd << endl;
+		return -1;
+	}
+
+	cout << string(g_file_table[fd].vnode->name) << endl;
+	cout << hex << g_file_table[fd].flag << endl;
+
+	char buf[255];
+	int res = f_read(buf, 1, 255, fd);
+	if (res < 255) {
+		cout << "bad read: " <<  res << endl;
+		return -1;
+	}
+	
+	cout << string(buf) << endl;
+
 
 	printf("Welcome to S&J's Shell!"
 			" You can type in 'help' to look for some instructions for this shell\n");
 
-	mainLoop();
+	// mainLoop();
 
 
 

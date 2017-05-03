@@ -50,14 +50,31 @@ int main(int argc, char** argvs) {
 	strncpy(vnode.name, "~", 255);
 	vnode.uid = 0;
 	vnode.gid = 0;
-	vnode.size = 0;
+	vnode.size = 1;
 	vnode.parent = NULL;
 	vnode.permission = 0755;
 	vnode.type = 1;
 	vnode.timestamp = time(NULL);
-	vnode.fatPtr = 0;
+	vnode.fatPtr = 1;
 
 	cout << vnode << endl;
+
+	Vnode test;
+	strncpy(test.name, "test.txt", 255);
+	test.uid = 0;
+	test.gid = 0;
+	test.size = 255;
+	test.parent = NULL;
+	test.permission = 0755;
+	test.type = 0;
+	test.timestamp = time(NULL);
+	test.fatPtr = 2;
+
+	cout << test << endl;
+
+	fatTable[0] = 1;
+	fatTable[1] = fatTable[2] = EOBLOCK;
+
 
 
 	int fd = open(argv[1].c_str(), O_CREAT | O_RDWR, 0666);
@@ -67,6 +84,18 @@ int main(int argc, char** argvs) {
 	}
 
 	int res;
+	res = ftruncate(fd, diskSize * 1024);
+	if (res == -1) {
+		perror("ftruncate disk failed");
+		exit(-1);
+	}
+
+	res = lseek(fd, 0, SEEK_SET);
+	if (res == -1) {
+		perror("lseek to the beginning of the file failed");
+		exit(-1);
+	}
+
 	res = write(fd, &superBlock, sizeof(superBlock));
 	if (res < sizeof(superBlock)) {
 		perror("write superBlock");
@@ -94,6 +123,31 @@ int main(int argc, char** argvs) {
 	res = write(fd, &vnode, sizeof(vnode));
 	if (res < sizeof(vnode)) {
 		perror("write root vnode");
+		exit(-1);
+	}
+
+	res = lseek(fd, (superBlock.data_offset + 1) * superBlock.blocksize, SEEK_SET);
+	if (res == -1) {
+		perror("lseek data block start");
+		exit(-1);
+	}
+
+	res = write(fd, &test, sizeof(test));
+	if (res < sizeof(test)) {
+		perror("write test vnode");
+		exit(-1);
+	}
+
+	res = lseek(fd, (superBlock.data_offset + 2) * superBlock.blocksize, SEEK_SET);
+	if (res == -1) {
+		perror("lseek data block 2 start");
+		exit(-1);
+	}
+
+	char buf[255] = "hello world!";
+	res = write(fd, buf, 255);
+	if (res < 255) {
+		perror("write test data failed");
 		exit(-1);
 	}
 
