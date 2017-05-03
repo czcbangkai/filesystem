@@ -63,6 +63,7 @@ public:
 	int uid;
 	int gid;
 	int size;
+  int address;
 	Vnode* parent;
 	int permission;	
 	int type;

@@ -19,7 +19,6 @@
 using namespace std;
 
 
-
 Tokenizer g_filename_tokenizer(" /", "");
 int g_max_num_child_in_block = BLOCKSIZE / sizeof(Vnode);
 Vnode *curVnode;
@@ -79,6 +78,7 @@ Vnode* findVnode(vector<string>& filenames, int type) {
 	      return -1;
 	    }
 
+	    newVnode->address = BLOCKSIZE * (g_superblock.data_offset + curPtr) + j * sizeof(Vnode);
 	    newVnode->parent = curVnode;
 	    curVnode = newVnode;
 
@@ -617,25 +617,53 @@ int mkdir(char* filename){
 
 
 int f_rmdir(const char* filename){
-  //find parent dir: edit # of children, replace Vnode for current dir with last dir
+  //find parent dir: edit # of children, replace Vnode for current dir with last dir & edit Fat
   //find all data blocks used by current dir and its files?
   
   Vnode *temp = curVnode;
   vector<string> filenames;
   g_filename_tokenizer.parseString(string(filename), filenames);
   Vnode *delDir = findVnode(filenames, 1);
-  Vnode *delDirParent = delDir->partent;
-  delDirParent->size--;
+  if (delDir == NULL) return -1;
+  Vnode *delDirParent = delDir->parent;
+  if (delDirParent == NULL) return -1;
 
-  vector<int> usedBlocks = new vector<int>();
-  int ptr = delDir->fatPtr;
-
-  while (ptr != EOBLOCK){
-    usedBlocks.push_back(ptr);
+  //find delDir address
+  
+  int prev;
+  int ptr = delDirParent->fatPtr;
+  while (g_FAT_table[ptr] != EOBLOCK){
+    prev = ptr;
     ptr = g_FAT_table[ptr];
   }
-
   
+  int blockIndex = delDirParent->size % g_max_num_child_in_block;
+  if (blockIndex == 0){
+    Vnode *last = new Vnode;
+    g_FAT_table[prev] = EOBLOCK;
+    g_FAT_table[ptr] = USMAX;
+    lseek(g_disk_fd, BLOCKSIZE * (g_superblock.data_offset + ptr), SEEK_SET);
+    read(g_disk_fd, last, sizeof(Vnode));
+    lseek(g_disk_fd, delDir->address, SEEK_SET);
+    write(g_disk_fd, last, sizeof(Vnode));
+    delete(last);
+  } else {
+    Vnode *last = new Vnode;
+    lseek(g_disk_fd, BLOCKSIZE * (g_superblock.data_offset + ptr) + blockIndex * sizeof(Vnode), SEEK_SET);
+    read(g_disk_fd, last, sizeof(Vnode));
+    lseek(g_disk_fd, delDir->address, SEEK_SET);
+    write(g_disk_fd, last, sizeof(Vnode));
+    delete(last);
+  }
+  
+  vector<int> usedBlocks = new vector<int>();
+  trackBlocks(usedBlocks, delDir);
+
+  for (int i = 0; i < usedBlocks.size(); i++){
+    g_FAT_table[usedBlocks[i]] = USMAX;
+  }
+
+  return 0;
 }
 
 void trackBlocks(vector<int>& blocks, Vnode *node){
@@ -643,11 +671,17 @@ void trackBlocks(vector<int>& blocks, Vnode *node){
 
   while (ptr != EOBLOCK){
     usedBlocks.push_back(ptr);
-    for (int i = 0; i < g_max_num_child_in_block; i++){
-      Vnode *child = new Vnode;
-      lseek(g_disk_fd, BLOCKSIZE * (g_superblock.data_offset + ptr) + i * sizeof(Vnode), SEEK_SET);
-      
+    if (node->type == 1){
+      for (int i = 0; i < g_max_num_child_in_block; i++){
+	Vnode *child = new Vnode;
+	lseek(g_disk_fd, BLOCKSIZE * (g_superblock.data_offset + ptr) + i * sizeof(Vnode), SEEK_SET);
+	read(g_disk_fd, child, sizeof(Vnode));
+	trackBlocks(blocks, child);
+	delete(child);
+      }
     }
     ptr = g_FAT_table[ptr];
   }
+
+  return;
 }
