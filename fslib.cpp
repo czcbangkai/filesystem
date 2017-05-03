@@ -197,7 +197,13 @@ int f_close(fd_t fd){
     return -1;
   }
 
-  free(ftable[fd].vnode);
+  Vnode *buffer = ftable[fd].vnode;
+  while (buffer != root){
+    Vnode *del = buffer;
+    buffer = buffer->parent;
+    delete(del);
+  }
+  
   g_file_table.removeFileEntry(fd);
 
   return 0;
