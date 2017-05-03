@@ -82,26 +82,25 @@ Vnode* findVnode(vector<string>& filenames, int type) {
 	    newVnode->parent = curVnode;
 	    curVnode = newVnode;
 
+	    if (type == 1 && i == filenames.size()-1){
+	      return newVnode;
+	    }
 	    foundDir = true;
 	    break;
 	  }
 	}
 
-	if (foundDir) {
-	  break;
-	}
+	if (foundDir) break;
 
 	curPtr = g_fat_table[curPtr];
       }
-    }
-    else {
-      if (i == filenames.size() - 1) {
+    } else {
+      if (i == filenames.size() - 1 && type == 0) {
 	curFile = curVnode;
 	curVnode = curVnode->parent;
 	fileExist = true;
 	break;
-      }
-      else {
+      } else {
 	//errno
 	return NULL;
       }
@@ -550,5 +549,6 @@ Stat f_readdir(int dirfd){
 }
 
 int f_closedir(int dirfd){
-  
+  return f_close(dirfd);
 }
+
