@@ -20,9 +20,9 @@ using namespace std;
 
 
 
-Tokenizer 	g_filename_tokenizer(" /", "");
-int 		g_max_num_child_in_block = BLOCKSIZE / sizeof(Vnode);
-Vnode* 		curVnode;
+Tokenizer g_filename_tokenizer(" /", "");
+int g_max_num_child_in_block = BLOCKSIZE / sizeof(Vnode);
+Vnode *curVnode;
 
 
 Vnode* findVnode(vector<string>& filenames, int type) {
@@ -53,7 +53,7 @@ Vnode* findVnode(vector<string>& filenames, int type) {
 
 	  char vnodeName[255];
 
-	  res = lseek(g_disk_fd, BLOCKSIZE * curPtr + j * sizeof(Vnode), SEEK_SET);
+	  res = lseek(g_disk_fd, BLOCKSIZE * (g_superblock.data_offset + curPtr) + j * sizeof(Vnode), SEEK_SET);
 	  if (res == -1) {
 	    perror("lseek child vnode failed");
 	    return -1;
@@ -67,7 +67,7 @@ Vnode* findVnode(vector<string>& filenames, int type) {
 
 	  if (filenames[j] == string(vnodeName)) {
 	    Vnode* newVnode = new Vnode;
-	    res = lseek(g_disk_fd, BLOCKSIZE * curPtr + j * sizeof(Vnode), SEEK_SET);
+	    res = lseek(g_disk_fd, BLOCKSIZE * (g_superblock.data_offset + curPtr) + j * sizeof(Vnode), SEEK_SET);
 	    if (res == -1) {
 	      perror("lseek child vnode failed");
 	      return -1;
@@ -116,7 +116,8 @@ Vnode* findVnode(vector<string>& filenames, int type) {
 
 
 int f_open(Vnode *vn, const char *filename, int flags) {
-  int res; 
+  int res;
+  Vnode *temp = curVnode;
 
   vector<string> filenames;
   g_filename_tokenizer.parseString(string(filename), filenames);
@@ -125,6 +126,7 @@ int f_open(Vnode *vn, const char *filename, int flags) {
   Vnode* curFile = findVnode(filenames);
   if (! curFile && ((flags & F_READ) || (flags & F_RDWR))) {
     // errno
+    curVnode = temp;
     return -1;
   }
 
@@ -132,6 +134,7 @@ int f_open(Vnode *vn, const char *filename, int flags) {
     unsigned short free_fat = g_fat_table.getNextFreeBlock();
     if (! free_fat) {
       //errno
+      curVnode = temp;
       return -1;
     }
 
@@ -148,15 +151,17 @@ int f_open(Vnode *vn, const char *filename, int flags) {
       unsigned short nextFreeBlock = g_fat_table.getNextFreeBlock();
       if (! nextFreeBlock) {
 	//errno
+	curVnode = temp;
 	return -1;
       }
 
-      vnodeAddr = BLOCKSIZE * nextFreeBlock;
+      vnodeAddr = BLOCKSIZE * (g_superblock.data_offset + nextFreeBlock);
     }
     else {
-      vnodeAddr = BLOCKSIZE * ptr + curDir->size % g_max_num_child_in_block * sizeof(Vnode);
+      vnodeAddr = BLOCKSIZE * (g_superblock.data_offset+ ptr) + curDir->size % g_max_num_child_in_block * sizeof(Vnode);
     }
 
+    curVnode = temp;
     res = lseek(g_disk_fd, vnodeAddr, SEEK_SET);
     if (res == -1) {
       perror("lseek new vnode address failed");
@@ -179,13 +184,13 @@ int f_open(Vnode *vn, const char *filename, int flags) {
   }
 
   g_file_table.addFileEntry(FtEntry(idx, curFile, 0, flags));
-
-
+  curVnode = temp;
+  
   return 0;
 }
 
 
-int f_close(fd_t fd){
+int f_close(int fd){
   if (fd < 0 || fd >= MAXFTSIZE){
     //error message
     return -1;
@@ -246,6 +251,7 @@ size_t 	f_read(void *data, size_t size, int num, int fd) {
 
   int i = 0, buf_pos = 0;
   do {
+    //what's this?
     res = lseek(g_disk_fd, g_superblock.data_offset * fat_pos + offs, SEEK_SET);
     if (res == -1) {
       // errno
@@ -283,6 +289,7 @@ size_t 	f_read(void *data, size_t size, int num, int fd) {
 
       fat_pos = g_fat_table[fat_pos];
       offs = 0;
+      //what's this
       res = lseek(g_disk_fd, g_superblock.data_offset * fat_pos, SEEK_SET);
       if (res == -1) {
 	// errno
@@ -332,6 +339,7 @@ size_t 	f_write(Vnode *vn, void *data, size_t size, int num, int fd) {
 
   int i = 0, buf_pos = 0;
   do {
+    //what's this
     res = lseek(g_disk_fd, g_superblock.data_offset * fat_pos + offs, SEEK_SET);
     if (res == -1) {
       // errno
@@ -374,6 +382,7 @@ size_t 	f_write(Vnode *vn, void *data, size_t size, int num, int fd) {
 
       fat_pos = g_fat_table[fat_pos];
       offs = 0;
+      //what's this??
       res = lseek(g_disk_fd, g_superblock.data_offset * fat_pos, SEEK_SET);
       if (res == -1) {
 	// errno
@@ -533,7 +542,7 @@ Stat f_readdir(int dirfd){
     for (int j = 0; j < 7; i++){
       if (nextidx == 0){
 	entry = (Vnode*) new (sizeof(Vnode));
-	lseek(g_disk_fd, BLOCKSIZE * curPtr + j * sizeof(Vnode), SEEK_SET);
+	lseek(g_disk_fd, BLOCKSIZE * (g_superblock.data_offset + curPtr) + j * sizeof(Vnode), SEEK_SET);
 	read(g_disk_fd, entry, sizeof(Vnode));
 	foundEntry = 1;
 	break;
@@ -552,3 +561,93 @@ int f_closedir(int dirfd){
   return f_close(dirfd);
 }
 
+//also need mode as permission bits
+int mkdir(char* filename){
+  Vnode *temp = curVnode;
+  vector<string> filenames;
+  g_filename_tokenizer.parseString(string(filename), filenames);
+  char *name = filenames.pop_back();
+  Vnode *newDirParent = findVnode(filenames, 1);
+
+  unsigned short free_fat = g_fat_table.getNextFreeBlock();
+  if (! free_fat) {
+    //errno
+    curVnode = temp;
+    return -1;
+  }
+
+  Vnode *curFile = new Vnode(name, 0, 0, 0, newDirParent, 0666, time(NULL), free_fat);
+  g_fat_table[free_fat] = EOBLOCK;
+
+  int ptr = curVnode->fatPtr;
+  while (g_fat_table[ptr] != EOBLOCK) {
+    ptr = g_fat_table[ptr];
+  }
+
+  int vnodeAddr;
+  if (curDir->size % g_max_num_child_in_block == 0) {
+    unsigned short nextFreeBlock = g_fat_table.getNextFreeBlock();
+    if (! nextFreeBlock) {
+      //errno
+      curVnode = temp;
+      return -1;
+    }
+    vnodeAddr = BLOCKSIZE * (g_superblock.data_offset + nextFreeBlock);
+  }
+  else {
+    vnodeAddr = BLOCKSIZE * (g_superblock.data_offset + ptr) + curDir->size % g_max_num_child_in_block * sizeof(Vnode);
+  }
+
+  curVnode = temp;
+  res = lseek(g_disk_fd, vnodeAddr, SEEK_SET);
+  if (res == -1) {
+    perror("lseek new vnode address failed");
+    return -1;
+  }
+
+  res = write(g_disk_fd, curFile, sizeof(Vnode));
+  if (res < sizeof(Vnode)) {
+    perror("write new vnode into parent directory data block failed");
+    return -1;
+  }
+
+  curDir->size++;
+  return 0;
+}
+
+
+int f_rmdir(const char* filename){
+  //find parent dir: edit # of children, replace Vnode for current dir with last dir
+  //find all data blocks used by current dir and its files?
+  
+  Vnode *temp = curVnode;
+  vector<string> filenames;
+  g_filename_tokenizer.parseString(string(filename), filenames);
+  Vnode *delDir = findVnode(filenames, 1);
+  Vnode *delDirParent = delDir->partent;
+  delDirParent->size--;
+
+  vector<int> usedBlocks = new vector<int>();
+  int ptr = delDir->fatPtr;
+
+  while (ptr != EOBLOCK){
+    usedBlocks.push_back(ptr);
+    ptr = g_FAT_table[ptr];
+  }
+
+  
+}
+
+void trackBlocks(vector<int>& blocks, Vnode *node){
+  int ptr = node->fatPtr;
+
+  while (ptr != EOBLOCK){
+    usedBlocks.push_back(ptr);
+    for (int i = 0; i < g_max_num_child_in_block; i++){
+      Vnode *child = new Vnode;
+      lseek(g_disk_fd, BLOCKSIZE * (g_superblock.data_offset + ptr) + i * sizeof(Vnode), SEEK_SET);
+      
+    }
+    ptr = g_FAT_table[ptr];
+  }
+}
