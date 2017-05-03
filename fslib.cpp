@@ -185,9 +185,20 @@ int f_open(Vnode *vn, const char *filename, int flags) {
   return 0;
 }
 
-int f_close(Vnode *vn, int fd) {
 
+int f_close(fd_t fd){
+  if (fd < 0 || fd >= MAXFTSIZE){
+    //error message
+    return -1;
+  }
+  
+  if (ftable[fd].index != fd){
+    //error message
+    return -1;
+  }
 
+  free(ftable[fd].vnode);
+  g_file_table.removeFileEntry(fd);
 
   return 0;
 }
@@ -205,7 +216,7 @@ static int find_fat(unsigned short& start, int& offset) {
   return 0;
 }
 
-size_t 	f_read(Vnode *vn, void *data, size_t size, int num, int fd) {
+size_t 	f_read(void *data, size_t size, int num, int fd) {
   int res;
 
   FtEntry* entry = g_file_table.getFileEntry(fd);
@@ -530,4 +541,8 @@ Stat f_readdir(int dirfd){
 
   Stat res = {entry->name, entry->uid, entry->gid, entry->size, entry->permission, entry->type, entry->timestamp, entry->fatPtr};
   return res;
+}
+
+int f_closedir(int dirfd){
+  
 }
