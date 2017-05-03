@@ -34,6 +34,7 @@ extern int 						g_data_offset;
 extern FileTable 				g_file_table;
 extern FatTable					g_fat_table;
 extern SuperBlock				g_superblock;
+extern Vnode*					g_root_directory;	
 
 
 

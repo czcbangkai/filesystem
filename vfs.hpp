@@ -13,7 +13,7 @@ using namespace std;
 #define FATSIZE					65526
 #define BLOCKSIZE				2048
 #define USMAX					65535
-#define DNODESIZE				288
+#define EOBLOCK					65534
 
 #define F_READ					0x0000
 #define F_WRITE					0x0001
@@ -28,6 +28,13 @@ using namespace std;
 
 class SuperBlock {
 public:
+	friend ostream& operator<<(ostream& os, SuperBlock const& superBlock) {
+		os << "block size: " << superBlock.blocksize << endl;
+		os << "fat offset: " << superBlock.fat_offset << endl;
+		os << "data offset: " << superBlock.data_offset << endl;
+		return os;
+	}
+
 	int blocksize;
 	int fat_offset;
 	int data_offset;
@@ -36,17 +43,31 @@ public:
 class Vnode {
 public:
 	Vnode(void);
+	Vnode(string name_, int uid_, int gid_, int size_, Vnode* parent_, int permission_, int type_, int timestamp_, int fatPtr_);
 	~Vnode(void);
+
+	friend ostream& operator<<(ostream& os, Vnode const& vnode) {
+		os << "name: " << string(vnode.name) << endl;
+		os << "uid: " << vnode.uid << endl;
+		os << "gid: " << vnode.gid << endl;
+		os << "size: " << vnode.size << endl;
+		// os << "parent name: " << string(vnode.parent->name) << endl;
+		os << "permission: " << oct << vnode.permission << endl;
+		os << "type: " << vnode.type << endl;
+		os << "timestamp: " << vnode.timestamp << endl;
+		os << "fatPtr: " << vnode.fatPtr << endl; 
+		return os;
+	}
 
 	char name[255];
 	int uid;
 	int gid;
 	int size;
+	Vnode* parent;
 	int permission;	
 	int type;
-	unsigned int timestamp;
+	int timestamp;
 	int fatPtr;
-	Vnode* parent;
 };
 
 
@@ -55,6 +76,7 @@ class FtEntry {
 public:
 	FtEntry(int i = -1, Vnode* vn = NULL, int offs = 0, int f = 0);
 	~FtEntry(void);
+	void removeSelf(void);
 
 	int index;
 	Vnode* vnode;
@@ -70,6 +92,7 @@ public:
 	FtEntry* getFileEntry(int fd);
 	int getNextIndex(void);
 	int addFileEntry(FtEntry const& ftEntry);
+	int removeFileEntry(int fd);
 
 private:
 	vector<FtEntry> _fileTable;
@@ -82,12 +105,19 @@ public:
 	FatTable(void);
 	~FatTable(void);
 
+	friend ostream& operator<<(ostream& os, FatTable const& fatTable) {
+		for (int i = 0; i < FATSIZE; i++) {
+			os << static_cast<unsigned>(fatTable._fatTable[i]) << endl;
+		}
+		return os;
+	}
+
 	unsigned short getNextFreeBlock(void);
 	unsigned short& operator[](size_t i);
 	unsigned short const& operator[](size_t i) const;
 
 private:
-	vector<unsigned short> _fatTable;
+	unsigned short _fatTable[FATSIZE];
 };
 
 
@@ -102,7 +132,7 @@ public:
 	size_t size;
 	int permission;
 	int type;
-	unsigned int timestamp;
+	int timestamp;
 	int fatPtr;
 };
 

@@ -1,4 +1,5 @@
 
+#include <cstring>
 #include <iostream>
 #include <vector>
 
@@ -6,10 +7,36 @@
 
 using namespace std;
 
+
+
+
+
+Vnode::Vnode(string name_, int uid_, int gid_, int size_, Vnode* parent_, int permission_, int type_, int timestamp_, int fatPtr_) {
+	strncpy(name, name_.c_str(), 255);
+	uid = uid_;
+	gid = gid_;
+	size = size_;
+	parent = parent_;
+	permission = permission_;
+	type = type_;
+	timestamp = timestamp_;
+	fatPtr = fatPtr_;
+}
+
+
+
 FtEntry::FtEntry(int idx, Vnode* vn, int offs, int f) 
 	: index(idx), vnode(vn), offset(offs), flag(f) {}
 
 FtEntry::~FtEntry(void) {}
+
+void FtEntry::removeSelf(void) {
+	index = -1;
+	delete vnode;
+	vnode = NULL;
+}
+
+
 
 FileTable::FileTable(void) : _fileTable(MAXFTSIZE, FtEntry()) {}
 
@@ -37,25 +64,34 @@ int FileTable::getNextIndex(void) {
 }
 
 int FileTable::addFileEntry(FtEntry const& ftEntry) {
-	int nextIndex = getNextIndex();
-	if (nextIndex == -1) {
+	_fileTable[ftEntry.index] = ftEntry;
+	return 0;
+}
+
+int FileTable::removeFileEntry(int fd) {
+	FtEntry* ftEntry = getFileEntry(fd);
+	if (! ftEntry) {
+		// errno
 		return -1;
 	}
-
-	_fileTable[nextIndex] = ftEntry;
-	return 0;
+	ftEntry->removeSelf();
+	return -1;
 }
 
 
 
 
-FatTable::FatTable(void) : _fatTable(FATSIZE, 0) {}
+FatTable::FatTable(void) {
+	for (int i = 0; i < FATSIZE; i++) {
+		_fatTable[i] = (unsigned short)USMAX;
+	}	
+}
 
 FatTable::~FatTable(void) {}
 
 unsigned short FatTable::getNextFreeBlock(void) {
-	for (int i = 1; i < FATSIZE; i++) {
-		if (! _fatTable[i]) {
+	for (unsigned short i = 1; i < FATSIZE; i++) {
+		if (_fatTable[i] == USMAX) {
 			return i;
 		}
 	}

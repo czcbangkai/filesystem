@@ -15,6 +15,7 @@ public:
 
 	void setString(string input);
 	string getNextToken(void);
+	void parseString(string input, vector<string>& tokens);
 
 private:
 	string _delim;

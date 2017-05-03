@@ -2,9 +2,11 @@
 #define _FSLIB_HPP
 
 #include "vfs.hpp"
+#include "tokenizer.hpp"
 
-extern FileTable 	g_file_table;
-extern FatTable		g_fat_table;
+// extern FileTable 	g_file_table;
+// extern FatTable		g_fat_table;
+extern Tokenizer 	g_filename_tokenizer;
 
 
 static int find_fat(unsigned short& start, int& offset);

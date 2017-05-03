@@ -1,5 +1,6 @@
 #include <iostream>
 #include <string>
+#include <vector>
 
 #include "tokenizer.hpp"
 
@@ -51,3 +52,34 @@ string Tokenizer::getNextToken(void) {
 
 	return "";
 }
+
+void Tokenizer::parseString(string input, vector<string>& tokens) {
+	setString(input);
+	string token;
+	do {
+		token = getNextToken();
+		if (token != "") {
+			tokens.push_back(token);
+		}
+		else {
+			return;
+		}
+	} while (token != "");
+}
+
+
+
+// int main(void) {
+
+// 	Tokenizer tok(" /", "");
+// 	string s = "~/d1/d2/d3/file";
+// 	tok.setString(s);
+// 	string t;
+// 	do {
+// 		t = tok.getNextToken();
+// 		cout << "|" << t << "|" << endl;
+// 	} while (t != "");
+
+
+// 	return 0;
+// }

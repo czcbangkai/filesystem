@@ -12,15 +12,102 @@
 
 #include "fslib.hpp"
 #include "vfs.hpp"
+#include "tokenizer.hpp"
 #include "mysh.hpp"
 
 using namespace std;
 
 
 
+Tokenizer 	g_filename_tokenizer(" /", "");
+int 		g_max_num_child_in_block = BLOCKSIZE / sizeof(Vnode);
+
+
+
+Vnode* findVnode(vector<string>& filenames) {
+	Vnode* curFile;
+	int numChild, start = 0;
+
+	if (filenames[0] == "~") {
+		start = 1;
+		curDir = g_root_directory;
+	}
+
+	bool fileExist = false;
+	for (int i = start; i < filenames.size(); i++) {
+		bool validDir = false;
+		if (curDir->type == 1 && curDir->size > 0) {
+			
+		}
+	}
+}
 
 
 int f_open(Vnode *vn, const char *filename, int flags) {
+	int res; 
+
+	vector<string> filenames;
+	g_filename_tokenizer.parseString(string(filename), filenames);
+
+
+	Vnode* curFile = findVnode(filenames);
+	if (! curFile && ((flags & F_READ) || (flags & F_WRITE))) {
+		// errno
+		return -1;
+	}
+
+	if (! curFile) {
+		unsigned short free_fat = g_fat_table.getNextFreeBlock();
+		if (! free_fat) {
+			//errno
+			return -1;
+		}
+
+		curFile = new Vnode(filenames.back(), 0, 0, 0,curDir, 0666, time(NULL), free_fat);
+		g_fat_table[free_fat] = EOBLOCK;
+
+		int ptr = curDir->fatPtr;
+		while (g_fat_table[ptr] != EOBLOCK) {
+			ptr = g_fat_table[ptr];
+		}
+
+		int vnodeAddr;
+		if (curDir->size % g_max_num_child_in_block == 0) {
+			unsigned short nextFreeBlock = g_fat_table.getNextFreeBlock();
+			if (! nextFreeBlock) {
+				//errno
+				return -1;
+			}
+
+			vnodeAddr = BLOCKSIZE * nextFreeBlock;
+		}
+		else {
+			vnodeAddr = BLOCKSIZE * ptr + curDir->size % g_max_num_child_in_block * sizeof(Vnode);
+		}
+
+		res = lseek(g_disk_fd, vnodeAddr, SEEK_SET);
+		if (res == -1) {
+			perror("lseek new vnode address failed");
+			return -1;
+		}
+
+		res = write(g_disk_fd, curFile, sizeof(Vnode));
+		if (res < sizeof(Vnode)) {
+			perror("write new vnode into parent directory data block failed");
+			return -1;
+		}
+
+		curDir->size++;
+	}
+
+	int idx = g_file_table.getNextIndex();
+	if (idx == -1) {
+		// errno;
+		return -1;
+	}
+
+	g_file_table.addFileEntry(FtEntry(idx, curFile, 0, flags));
+
 
 	return 0;
 }
@@ -52,7 +139,7 @@ size_t 	f_read(Vnode *vn, void *data, size_t size, int num, int fd) {
 		return 0;
 	}
 
-	if (! (entry->flag & F_READ) || ! (entry->flag & F_RDWR)) {
+	if (! (entry->flag & F_READ) && ! (entry->flag & F_RDWR)) {
 		// errno
 		return 0;
 	}
@@ -99,7 +186,7 @@ size_t 	f_read(Vnode *vn, void *data, size_t size, int num, int fd) {
 			offs += res;
 			entry->offset += res;
 
-			if (g_fat_table[fat_pos] == USMAX) {
+			if (g_fat_table[fat_pos] == EOBLOCK) {
 				break;
 			}
 
@@ -138,7 +225,7 @@ size_t 	f_write(Vnode *vn, void *data, size_t size, int num, int fd) {
 		return 0;
 	}
 
-	if (! (entry->flag & F_WRITE) || ! (entry->flag & F_RDWR)) {
+	if (! (entry->flag & F_WRITE) && ! (entry->flag & F_RDWR)) {
 		// errno
 		return 0;
 	}
@@ -184,14 +271,14 @@ size_t 	f_write(Vnode *vn, void *data, size_t size, int num, int fd) {
 			offs += res;
 			entry->offset += res;
 
-			if (g_fat_table[fat_pos] == USMAX && size - size_cur_block > 0) {
-				int free_fat = g_fat_table.getNextFreeBlock();
+			if (g_fat_table[fat_pos] == EOBLOCK && size - size_cur_block > 0) {
+				unsigned short free_fat = g_fat_table.getNextFreeBlock();
 				if (! free_fat) {
 					// errno
 					return i;
 				}
 				g_fat_table[fat_pos] = free_fat;
-				g_fat_table[free_fat] = USMAX;
+				g_fat_table[free_fat] = EOBLOCK;
 			}
 
 			fat_pos = g_fat_table[fat_pos];
@@ -279,5 +366,6 @@ int	f_stat(Vnode *vn, Stat *buf, int fd) {
 
 	return 0;
 }
+
 
 

@@ -8,6 +8,8 @@
 #include <errno.h>
 
 #include <unistd.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <signal.h>
@@ -34,6 +36,7 @@ int 					g_data_offset;
 FileTable 				g_file_table;
 FatTable				g_fat_table;
 SuperBlock				g_superblock;
+Vnode*					g_root_directory;	
 
 
 // SIGNAL
@@ -180,7 +183,71 @@ void mainLoop(void) {
 
 
 
-int main(void) {
+int initFS(string diskname) {
+	g_disk_fd = open(diskname.c_str(), O_RDWR, 0666);
+	if (g_disk_fd == -1) {
+		perror("open disk file failed");
+		return -1;
+	}
+
+	int res;
+	res = read(g_disk_fd, &g_superblock, sizeof(SuperBlock));
+	if (res < sizeof(SuperBlock)) {
+		perror("read superblock failed");
+		return -1;
+	}
+
+	// cout << g_superblock << endl;
+
+	res = lseek(g_disk_fd, g_superblock.blocksize * g_superblock.fat_offset, SEEK_SET);
+	if (res == -1) {
+		perror("lseek fat table failed");
+		return -1;
+	}
+
+	res = read(g_disk_fd, &g_fat_table, sizeof(g_fat_table));
+	if (res < sizeof(g_fat_table)) {
+		perror("read fat table failed");
+		return -1;
+	}
+
+	// cout << g_fat_table << endl;
+
+	res = lseek(g_disk_fd, g_superblock.blocksize * g_superblock.data_offset, SEEK_SET);
+	if (res == -1) {
+		perror("lseek root directory block failed");
+		return -1;
+	}
+
+	g_root_directory = new Vnode;
+
+	res = read(g_disk_fd, g_root_directory, sizeof(Vnode));
+	if (res < sizeof(Vnode)) {
+		perror("read root directory failed");
+		return -1;
+	}
+
+	// cout << *g_root_directory << endl;
+
+	return 1;
+}
+
+
+
+
+int main(int argc, char** argvs) {
+
+	vector<string> argv(argvs, argvs + argc);
+	if (argc != 2) {
+		cout << "Usage: mysh <diskname>" << endl;
+		return -1;
+	} 
+
+	if (initFS(argv[1]) == -1) {
+		return -1;
+	}
+
+
 
 	printf("Welcome to S&J's Shell!"
 			" You can type in 'help' to look for some instructions for this shell\n");
