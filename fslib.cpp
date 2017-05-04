@@ -115,18 +115,20 @@ Vnode* findVnode(vector<string>& filenames, int type) {
 }
 
 
-int f_open(Vnode *vn, const char *filename, int flags) {
-  int res;
-  Vnode *temp = curVnode;
+int f_open(const char *filename, int flags) {
+  int res; 
 
   vector<string> filenames;
   g_filename_tokenizer.parseString(string(filename), filenames);
+  for (auto& s : filenames) 
+    cout << "|" << s << "|" << endl;
 
 
   Vnode* curFile = findVnode(filenames, 0);
+  cout << curFile << endl;
+  // cout << string(curFile->name) << endl;
   if (! curFile && ((flags & F_READ) || (flags & F_RDWR))) {
     // errno
-    curVnode = temp;
     return -1;
   }
 
@@ -134,7 +136,6 @@ int f_open(Vnode *vn, const char *filename, int flags) {
     unsigned short free_fat = g_fat_table.getNextFreeBlock();
     if (! free_fat) {
       //errno
-      curVnode = temp;
       return -1;
     }
 
@@ -151,19 +152,17 @@ int f_open(Vnode *vn, const char *filename, int flags) {
       unsigned short nextFreeBlock = g_fat_table.getNextFreeBlock();
       if (! nextFreeBlock) {
 	//errno
-	curVnode = temp;
 	return -1;
       }
 
       vnodeAddr = BLOCKSIZE * (g_superblock.data_offset + nextFreeBlock);
     }
     else {
-      vnodeAddr = BLOCKSIZE * (g_superblock.data_offset+ ptr) + curVnode->size % g_max_num_child_in_block * sizeof(Vnode);
+      vnodeAddr = BLOCKSIZE * (g_superblock.data_offset + ptr) + curVnode->size % g_max_num_child_in_block * sizeof(Vnode);
     }
 
     curFile = new Vnode(filenames.back(), 0, 0, 0, vnodeAddr, curVnode, 0666, 0, time(NULL), free_fat);
 
-    curVnode = temp;
     res = lseek(g_disk_fd, vnodeAddr, SEEK_SET);
     if (res == -1) {
       perror("lseek new vnode address failed");
@@ -176,7 +175,9 @@ int f_open(Vnode *vn, const char *filename, int flags) {
       return -1;
     }
 
-    curDir->size++;
+    curVnode->size++;
+    lseek(g_disk_fd, curVnode->address, SEEK_SET);
+    write(g_disk_fd, curVnode->address + 264, sizeof(int));
   }
 
   int idx = g_file_table.getNextIndex();
@@ -186,9 +187,9 @@ int f_open(Vnode *vn, const char *filename, int flags) {
   }
 
   g_file_table.addFileEntry(FtEntry(idx, curFile, 0, flags));
-  curVnode = temp;
-  
-  return 0;
+
+
+  return idx;
 }
 
 
