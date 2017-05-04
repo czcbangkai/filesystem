@@ -564,8 +564,7 @@ int f_closedir(int dirfd){
 }
 
 //also need mode as permission bits
-int mkdir(char* filename){
-  Vnode *temp = curVnode;
+int f_mkdir(char* filename){
   vector<string> filenames;
   g_filename_tokenizer.parseString(string(filename), filenames);
   char *name = filenames.pop_back();
@@ -574,7 +573,6 @@ int mkdir(char* filename){
   unsigned short free_fat = g_fat_table.getNextFreeBlock();
   if (! free_fat) {
     //errno
-    curVnode = temp;
     return -1;
   }
 
@@ -591,7 +589,6 @@ int mkdir(char* filename){
     unsigned short nextFreeBlock = g_fat_table.getNextFreeBlock();
     if (! nextFreeBlock) {
       //errno
-      curVnode = temp;
       return -1;
     }
     vnodeAddr = BLOCKSIZE * (g_superblock.data_offset + nextFreeBlock);
@@ -600,7 +597,6 @@ int mkdir(char* filename){
     vnodeAddr = BLOCKSIZE * (g_superblock.data_offset + ptr) + newDirParent->size % g_max_num_child_in_block * sizeof(Vnode);
   }
 
-  curVnode = temp;
   res = lseek(g_disk_fd, vnodeAddr, SEEK_SET);
   if (res == -1) {
     perror("lseek new vnode address failed");
@@ -624,7 +620,6 @@ int f_rmdir(const char* filename){
   //find parent dir: edit # of children, replace Vnode for current dir with last dir & edit Fat
   //find all data blocks used by current dir and its files?
   
-  Vnode *temp = curVnode;
   vector<string> filenames;
   g_filename_tokenizer.parseString(string(filename), filenames);
   Vnode *delDir = findVnode(filenames, 1);
