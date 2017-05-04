@@ -603,9 +603,6 @@ int f_closedir(int dd){
 
 int f_mkdir(char const* dir){
   int res;
-
-  Vnode* temp = curVnode;
-	
   vector<string> dirs;
   g_filename_tokenizer.parseString(string(dir), dirs);
 
@@ -615,7 +612,6 @@ int f_mkdir(char const* dir){
   Vnode* newDirParent = findVnode(dirs, 1);
   if (! newDirParent) {
     //errno
-    curVnode = temp;
     return -1;
   }
 
@@ -627,7 +623,7 @@ int f_mkdir(char const* dir){
 
   g_fat_table[free_fat] = EOBLOCK;
 
-  unsigned short ptr = curVnode->fatPtr;
+  unsigned short ptr = newDirParent->fatPtr;
   while (g_fat_table[ptr] != EOBLOCK) {
     ptr = g_fat_table[ptr];
   }
@@ -637,13 +633,12 @@ int f_mkdir(char const* dir){
     unsigned short nextFreeBlock = g_fat_table.getNextFreeBlock();
     if (! nextFreeBlock) {
       //errno
-      curVnode = temp;
       return -1;
     }
     vnodeAddr = BLOCKSIZE * (g_superblock.data_offset + nextFreeBlock);
   }
   else {
-    vnodeAddr = BLOCKSIZE * (g_superblock.data_offset + ptr) + curVnode->size % g_max_num_child_in_block * sizeof(Vnode);
+    vnodeAddr = BLOCKSIZE * (g_superblock.data_offset + ptr) + newDirParent->size % g_max_num_child_in_block * sizeof(Vnode);
   }
 
   Vnode* newCurDir = new Vnode(dirName, 0, 0, 0, vnodeAddr, newDirParent, 0666, 1, time(NULL), free_fat);
