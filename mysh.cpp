@@ -34,7 +34,8 @@ int 					g_data_offset;
 FileTable 				g_file_table;
 FatTable				g_fat_table;
 SuperBlock				g_superblock;
-Vnode*					g_root_directory;	
+Vnode*					g_root_directory;
+Vnode* g_cur_dir;
 
 
 // SIGNAL

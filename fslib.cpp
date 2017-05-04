@@ -31,7 +31,7 @@ Vnode* findVnode(vector<string>& filenames, int type) {
   int start = 0;
 
   if (filenames[0] == "~") {
-    start = 1;
+    start = 1; 
     curVnode = g_root_directory;
   }
 
