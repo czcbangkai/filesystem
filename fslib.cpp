@@ -55,13 +55,13 @@ Vnode* findVnode(vector<string>& filenames, int type) {
 	  res = lseek(g_disk_fd, BLOCKSIZE * (g_superblock.data_offset + curPtr) + j * sizeof(Vnode), SEEK_SET);
 	  if (res == -1) {
 	    perror("lseek child vnode failed");
-	    return -1;
+	    return NULL;
 	  }
 
 	  res = read(g_disk_fd, vnodeName, 255);
 	  if (res < 255) {
-	    perror("read child name failed")
-	      return -1;
+	    perror("read child name failed");
+	    return NULL;
 	  }
 
 	  if (filenames[j] == string(vnodeName)) {
@@ -69,13 +69,13 @@ Vnode* findVnode(vector<string>& filenames, int type) {
 	    res = lseek(g_disk_fd, BLOCKSIZE * (g_superblock.data_offset + curPtr) + j * sizeof(Vnode), SEEK_SET);
 	    if (res == -1) {
 	      perror("lseek child vnode failed");
-	      return -1;
+	      return NULL;
 	    }
 
 	    res = read(g_disk_fd, newVnode, sizeof(Vnode));
 	    if (res < sizeof(Vnode)) {
 	      perror("read child vnode failed");
-	      return -1;
+	      return NULL;
 	    }
 
 	    newVnode->address = BLOCKSIZE * (g_superblock.data_offset + curPtr) + j * sizeof(Vnode);
@@ -123,7 +123,7 @@ int f_open(Vnode *vn, const char *filename, int flags) {
   g_filename_tokenizer.parseString(string(filename), filenames);
 
 
-  Vnode* curFile = findVnode(filenames);
+  Vnode* curFile = findVnode(filenames, 0);
   if (! curFile && ((flags & F_READ) || (flags & F_RDWR))) {
     // errno
     curVnode = temp;
@@ -138,7 +138,7 @@ int f_open(Vnode *vn, const char *filename, int flags) {
       return -1;
     }
 
-    curFile = new Vnode(filenames.back(), 0, 0, 0, curVnode, 0666, time(NULL), free_fat);
+    
     g_fat_table[free_fat] = EOBLOCK;
 
     int ptr = curVnode->fatPtr;
@@ -147,7 +147,7 @@ int f_open(Vnode *vn, const char *filename, int flags) {
     }
 
     int vnodeAddr;
-    if (curDir->size % g_max_num_child_in_block == 0) {
+    if (curVnode->size % g_max_num_child_in_block == 0) {
       unsigned short nextFreeBlock = g_fat_table.getNextFreeBlock();
       if (! nextFreeBlock) {
 	//errno
@@ -158,8 +158,10 @@ int f_open(Vnode *vn, const char *filename, int flags) {
       vnodeAddr = BLOCKSIZE * (g_superblock.data_offset + nextFreeBlock);
     }
     else {
-      vnodeAddr = BLOCKSIZE * (g_superblock.data_offset+ ptr) + curDir->size % g_max_num_child_in_block * sizeof(Vnode);
+      vnodeAddr = BLOCKSIZE * (g_superblock.data_offset+ ptr) + curVnode->size % g_max_num_child_in_block * sizeof(Vnode);
     }
+
+    curFile = new Vnode(filenames.back(), 0, 0, 0, vnodeAddr, curVnode, 0666, 0, time(NULL), free_fat);
 
     curVnode = temp;
     res = lseek(g_disk_fd, vnodeAddr, SEEK_SET);
@@ -579,13 +581,13 @@ int mkdir(char* filename){
   Vnode *curFile = new Vnode(name, 0, 0, 0, newDirParent, 0666, time(NULL), free_fat);
   g_fat_table[free_fat] = EOBLOCK;
 
-  int ptr = curVnode->fatPtr;
+  int ptr = newDirParent->fatPtr;
   while (g_fat_table[ptr] != EOBLOCK) {
     ptr = g_fat_table[ptr];
   }
 
   int vnodeAddr;
-  if (curDir->size % g_max_num_child_in_block == 0) {
+  if (newDirParent->size % g_max_num_child_in_block == 0) {
     unsigned short nextFreeBlock = g_fat_table.getNextFreeBlock();
     if (! nextFreeBlock) {
       //errno
@@ -595,7 +597,7 @@ int mkdir(char* filename){
     vnodeAddr = BLOCKSIZE * (g_superblock.data_offset + nextFreeBlock);
   }
   else {
-    vnodeAddr = BLOCKSIZE * (g_superblock.data_offset + ptr) + curDir->size % g_max_num_child_in_block * sizeof(Vnode);
+    vnodeAddr = BLOCKSIZE * (g_superblock.data_offset + ptr) + newDirParent->size % g_max_num_child_in_block * sizeof(Vnode);
   }
 
   curVnode = temp;
@@ -611,7 +613,9 @@ int mkdir(char* filename){
     return -1;
   }
 
-  curDir->size++;
+  newDirParent->size++;
+  lseek(g_disk_fd, newDirParent->address + 264, SEEK_SET);
+  write(g_disk_fd, newDirParent->size, sizeof(int));
   return 0;
 }
 

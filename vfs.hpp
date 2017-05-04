@@ -43,7 +43,7 @@ public:
 class Vnode {
 public:
 	Vnode(void);
-	Vnode(string name_, int uid_, int gid_, int size_, Vnode* parent_, int permission_, int type_, int timestamp_, int fatPtr_);
+  Vnode(string name_, int uid_, int gid_, int size_, int address_, Vnode* parent_, int permission_, int type_, int timestamp_, int fatPtr_);
 	~Vnode(void);
 
 	friend ostream& operator<<(ostream& os, Vnode const& vnode) {

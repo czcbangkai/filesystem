@@ -11,11 +11,12 @@ using namespace std;
 
 
 
-Vnode::Vnode(string name_, int uid_, int gid_, int size_, Vnode* parent_, int permission_, int type_, int timestamp_, int fatPtr_) {
+Vnode::Vnode(string name_, int uid_, int gid_, int size_, int address_, Vnode* parent_, int permission_, int type_, int timestamp_, int fatPtr_) {
 	strncpy(name, name_.c_str(), 255);
 	uid = uid_;
 	gid = gid_;
 	size = size_;
+	address = address_;
 	parent = parent_;
 	permission = permission_;
 	type = type_;
