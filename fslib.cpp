@@ -31,10 +31,13 @@ Vnode* findVnode(vector<string>& filenames, int type) {
   Vnode* curFile;
   int start = 0;
 
-  if (filenames[0] == "~") {
+  /* if (filenames[0] == "~") {
     start = 1;
     curVnode = g_root_directory;
   }
+  */
+  start = 1;
+  curVnode = g_root_directory;
 
   bool fileExist = false;
   for (int i = start; i < filenames.size(); i++) {
