@@ -11,6 +11,7 @@ extern Tokenizer 	g_filename_tokenizer;
 
 static int find_fat(unsigned short& start, int& offset);
 static void trackBlocks(vector<int>& blocks, Vnode *node);
+Vnode *findVnode(vector<string>& filenames, int type);
 int 				f_open(const char *filename, int flags);
 size_t 				f_read(void *data, size_t size, int num, int fd);
 size_t 				f_write(void *data, size_t size, int num, int fd);

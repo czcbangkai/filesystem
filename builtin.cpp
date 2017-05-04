@@ -23,7 +23,7 @@ BuiltinList::BuiltinList(void) {
   //createBuiltinFunc("chmod", &buitin_chmod);
   createBuiltinFunc("mkdir", &builtin_mkdir);
   createBuiltinFunc("rmdir", &builtin_rmdir);
-  //createBuiltinFunc("cd", &builtin_cd);
+  createBuiltinFunc("cd", &builtin_cd);
   createBuiltinFunc("pwd", &builtin_pwd);
   //createBuiltinFunc("cat", &builtin_cat);
   //createBuiltinFunc("more", &builtin_more);
@@ -104,6 +104,27 @@ int builtin_rmdir(vector<string> const& argv){
   string filepath = build_path(g_cur_directory);
   filepath.append("/" + argv[0]);
   return f_rmdir(filepath.c_str());
+}
+
+int builtin_cd(vector<string> const& argv){
+  if (argv.size() > 1) return -1;
+  if (argv[0] == "."){
+    //?? do nothing?
+    return 0;
+  } else if (argv[0] == ".."){
+    g_cur_directory = g_root_directory;
+    return 0;
+  } else {
+    vector<string> filenames;
+    g_filename_tokenizer.parseString(argv[0], filenames);
+    Vnode *nextDir = findVnode(filenames, 1);
+    if (!nextDir){
+      //errno
+      return -1;
+    }
+    g_cur_directory = nextDir;
+    return 0;
+  }
 }
 
 int builtin_pwd(vector<string> const& argv){

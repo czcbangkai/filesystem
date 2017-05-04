@@ -630,7 +630,7 @@ int f_mkdir(char const* dir){
   }
 
   int vnodeAddr;
-  if (curVnode->size % g_max_num_child_in_block == 0) {
+  if (newDirParent->size % g_max_num_child_in_block == 0) {
     unsigned short nextFreeBlock = g_fat_table.getNextFreeBlock();
     if (! nextFreeBlock) {
       //errno
@@ -645,7 +645,6 @@ int f_mkdir(char const* dir){
 
   Vnode* newCurDir = new Vnode(dirName, 0, 0, 0, vnodeAddr, newDirParent, 0666, 1, time(NULL), free_fat);
 
-  curVnode = temp;
   res = lseek(g_disk_fd, vnodeAddr, SEEK_SET);
   if (res == -1) {
     //errno;
@@ -658,7 +657,9 @@ int f_mkdir(char const* dir){
     return -1;
   }
 
-  curVnode->size++;
+  newDirParent->size++;
+  lseek(g_disk_fd, newDirParent->address, SEEK_SET);
+  write(g_disk_fd, newDirParent, sizeof(Vnode));
 
   return 0;
 }
