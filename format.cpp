@@ -1,4 +1,4 @@
-
+#include <cstring>
 #include <ctime>
 #include <unistd.h>
 #include <fcntl.h>

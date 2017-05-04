@@ -31,13 +31,16 @@ Vnode* findVnode(vector<string>& filenames, int type) {
   Vnode* curFile;
   int start = 0;
 
-  /* if (filenames[0] == "~") {
+  if (filenames[0] == "~") {
     start = 1;
     curVnode = g_root_directory;
+    if (filenames.size() == 1 && type == 1){
+      return g_root_directory;
+    }
+  } else {
+    cout << "does not support relative path" << endl;
+    return NULL;
   }
-  */
-  start = 1;
-  curVnode = g_root_directory;
 
   bool fileExist = false;
   for (int i = start; i < filenames.size(); i++) {
@@ -148,7 +151,10 @@ int f_open(const char *filename, int flags) {
     return -1;
   }
 
+  //cout << "here?" << endl;
+  
   if (! curFile) {
+    //cout << "file does not exist yet!" << endl;
     unsigned short free_fat = g_fat_table.getNextFreeBlock();
     if (! free_fat) {
       //errno
@@ -612,6 +618,7 @@ int f_mkdir(char const* dir){
   Vnode* newDirParent = findVnode(dirs, 1);
   if (! newDirParent) {
     //errno
+    cout << "null parent for mkdir" << endl;
     return -1;
   }
 
@@ -658,6 +665,13 @@ int f_mkdir(char const* dir){
   newDirParent->size++;
   lseek(g_disk_fd, newDirParent->address, SEEK_SET);
   write(g_disk_fd, newDirParent, sizeof(Vnode));
+
+  Vnode *temp = newCurDir;
+  while (temp != g_root_directory){
+    Vnode *del = temp;
+    temp = temp->parent;
+    delete(del);
+  }
 
   return 0;
 }

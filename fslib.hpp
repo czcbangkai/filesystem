@@ -21,7 +21,7 @@ int 				f_rewind(int fd);
 int					f_stat(Stat *buf, int fd);
 int					f_remove(const char *filename);
 int					f_opendir(const char *filename);
-Stat*				f_readdir(int ddv);
+Stat*				f_readdir(int dd);
 int					f_closedir(int dd);
 int					f_mkdir(const char *filename);
 int					f_rmdir(const char *filename);

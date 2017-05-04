@@ -47,7 +47,7 @@ BuiltinFunc BuiltinList::findBuiltinFunc(string const& funcName) {
 
 string build_path(Vnode *node){
   Vnode *temp = node;
-  string res = "/root";
+  string res = "~";
   while (temp != g_root_directory){
     string name = "/" + string(temp->name);
     res.insert(5, temp->name);
