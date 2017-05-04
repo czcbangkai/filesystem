@@ -35,8 +35,11 @@ extern BuiltinList g_builtinList;
 
 int builtin_exit(vector<string> const& argv);
 int builtin_help(vector<string> const& argv);
-
-
+int builtin_ls(vector<string> const& argv);
+int builtin_mkdir(vector<string> const& argv);
+int builtin_rmdir(vector<string> const& argv);
+int builtin_pwd(vector<string> const& argv);
+int builtin_rm(vector<string> const& argv);
 
 
 #endif // _BUILTIN_HPP
