@@ -11,6 +11,11 @@ using namespace std;
 
 
 
+void print_error(int line_no, const char* func_name, const char* custom) {
+	fprintf(stderr, "[Line:%d][%s] %s: %s\n", line_no, func_name, custom, strerror(errno));
+}
+
+
 bool regexMatch(string str, string pattern) {
 	int status;
 	regex_t reg;

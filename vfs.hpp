@@ -15,10 +15,10 @@ using namespace std;
 #define USMAX					65535
 #define EOBLOCK					65534
 
-#define F_READ					0x0000
-#define F_WRITE					0x0001
-#define F_RDWR					0x0002
-#define F_APPEND				0x0003
+#define F_READ					0x0001
+#define F_WRITE					0x0002
+#define F_RDWR					0x0003
+#define F_APPEND				0x0004
 
 #define S_SET					0
 #define S_CUR					1
@@ -43,7 +43,7 @@ public:
 class Vnode {
 public:
 	Vnode(void);
-  Vnode(string name_, int uid_, int gid_, int size_, int address_, Vnode* parent_, int permission_, int type_, int timestamp_, int fatPtr_);
+	Vnode(string name_, int uid_, int gid_, int size_, Vnode* parent_, int permission_, int type_, int timestamp_, int fatPtr_);
 	~Vnode(void);
 
 	friend ostream& operator<<(ostream& os, Vnode const& vnode) {
@@ -63,7 +63,6 @@ public:
 	int uid;
 	int gid;
 	int size;
-  int address;
 	Vnode* parent;
 	int permission;	
 	int type;
@@ -94,6 +93,13 @@ public:
 	int getNextIndex(void);
 	int addFileEntry(FtEntry const& ftEntry);
 	int removeFileEntry(int fd);
+
+	FtEntry& operator[](size_t i) {
+		return _fileTable[i];
+	}
+	FtEntry const& operator[](size_t i) const {
+		return (*this)[i];
+	}
 
 private:
 	vector<FtEntry> _fileTable;
@@ -127,6 +133,10 @@ private:
 
 class Stat {
 public:
+	Stat(void);
+	Stat(Vnode const* vnode);
+	~Stat(void);
+
 	char name[255];
 	int uid;
 	int gid;

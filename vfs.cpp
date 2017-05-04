@@ -10,13 +10,15 @@ using namespace std;
 
 
 
+Vnode::Vnode(void) {}
 
-Vnode::Vnode(string name_, int uid_, int gid_, int size_, int address_, Vnode* parent_, int permission_, int type_, int timestamp_, int fatPtr_) {
+Vnode::~Vnode(void) {}
+
+Vnode::Vnode(string name_, int uid_, int gid_, int size_, Vnode* parent_, int permission_, int type_, int timestamp_, int fatPtr_) {
 	strncpy(name, name_.c_str(), 255);
 	uid = uid_;
 	gid = gid_;
 	size = size_;
-	address = address_;
 	parent = parent_;
 	permission = permission_;
 	type = type_;
@@ -26,14 +28,13 @@ Vnode::Vnode(string name_, int uid_, int gid_, int size_, int address_, Vnode* p
 
 
 
-FtEntry::FtEntry(int idx, Vnode* vn, int offs, int f) 
-	: index(idx), vnode(vn), offset(offs), flag(f) {}
+FtEntry::FtEntry(int i, Vnode* vn, int offs, int f) 
+	: index(i), vnode(vn), offset(offs), flag(f) {}
 
 FtEntry::~FtEntry(void) {}
 
 void FtEntry::removeSelf(void) {
 	index = -1;
-	delete vnode;
 	vnode = NULL;
 }
 
@@ -112,3 +113,23 @@ unsigned short& FatTable::operator[](size_t i) {
 unsigned short const& FatTable::operator[](size_t i) const {
 	return (*this)[i];
 }
+
+
+
+Stat(void) {}
+
+Stat(Vnode const* vnode) {
+	strncpy(name, vnode->name, 255);
+	uid = vnode->uid;
+	gid = vnode->gid;
+	size = vnode->size;
+	permission = vnode->permission;
+	type = vnode->type;
+	timestamp = vnode->timestamp;
+	fatPtr = vnode->fatPtr;
+}
+
+~Stat(void) {}
+
+
+
