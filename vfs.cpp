@@ -14,11 +14,12 @@ Vnode::Vnode(void) {}
 
 Vnode::~Vnode(void) {}
 
-Vnode::Vnode(string name_, int uid_, int gid_, int size_, Vnode* parent_, int permission_, int type_, int timestamp_, int fatPtr_) {
+Vnode::Vnode(string name_, int uid_, int gid_, int size_, int address_, Vnode* parent_, int permission_, int type_, int timestamp_, int fatPtr_) {
 	strncpy(name, name_.c_str(), 255);
 	uid = uid_;
 	gid = gid_;
 	size = size_;
+	address = address_;
 	parent = parent_;
 	permission = permission_;
 	type = type_;
@@ -116,9 +117,9 @@ unsigned short const& FatTable::operator[](size_t i) const {
 
 
 
-Stat(void) {}
+Stat::Stat(void) {}
 
-Stat(Vnode const* vnode) {
+Stat::Stat(Vnode const* vnode) {
 	strncpy(name, vnode->name, 255);
 	uid = vnode->uid;
 	gid = vnode->gid;
@@ -129,7 +130,7 @@ Stat(Vnode const* vnode) {
 	fatPtr = vnode->fatPtr;
 }
 
-~Stat(void) {}
+Stat::~Stat(void) {}
 
 
 

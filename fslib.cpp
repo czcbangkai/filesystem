@@ -189,7 +189,7 @@ int f_open(const char *filename, int flags) {
 
     curVnode->size++;
     lseek(g_disk_fd, curVnode->address, SEEK_SET);
-    write(g_disk_fd, curVnode->address + 264, sizeof(int));		
+    write(g_disk_fd, curVnode, sizeof(Vnode));		
   }
 
   int idx = g_file_table.getNextIndex();
@@ -351,7 +351,7 @@ size_t 	f_write(void *data, size_t size, int num, int fd) {
   }
 
   if (entry->flag & F_APPEND) {
-    entry->offset = vnode->size;
+    entry->offset = entry->vnode->size;
   }
 
   Vnode* vnode = entry->vnode;
@@ -535,7 +535,7 @@ int f_opendir(const char* dir) {
   vector<string> dirs;
   g_filename_tokenizer.parseString(string(dir), dirs);
 
-  Vnode* curDir = findVode(dirs, 1); 
+  Vnode* curDir = findVnode(dirs, 1); 
   if (! curDir) {
     //errno
     return -1;
@@ -622,7 +622,6 @@ int f_mkdir(char const* dir){
     return -1;
   }
 
-  Vnode newCurDir(dirName, 0, 0, 0, newDirParent, 0666, time(NULL), free_fat);
   g_fat_table[free_fat] = EOBLOCK;
 
   unsigned short ptr = curVnode->fatPtr;
@@ -643,6 +642,8 @@ int f_mkdir(char const* dir){
   else {
     vnodeAddr = BLOCKSIZE * (g_superblock.data_offset + ptr) + curVnode->size % g_max_num_child_in_block * sizeof(Vnode);
   }
+
+  Vnode* newCurDir = new Vnode(dirName, 0, 0, 0, vnodeAddr, newDirParent, 0666, 1, time(NULL), free_fat);
 
   curVnode = temp;
   res = lseek(g_disk_fd, vnodeAddr, SEEK_SET);
@@ -678,16 +679,16 @@ int f_rmdir(const char* filename){
   
   int prev;
   int ptr = delDirParent->fatPtr;
-  while (g_FAT_table[ptr] != EOBLOCK){
+  while (g_fat_table[ptr] != EOBLOCK){
     prev = ptr;
-    ptr = g_FAT_table[ptr];
+    ptr = g_fat_table[ptr];
   }
   
   int blockIndex = delDirParent->size % g_max_num_child_in_block;
   if (blockIndex == 0){
     Vnode *last = new Vnode;
-    g_FAT_table[prev] = EOBLOCK;
-    g_FAT_table[ptr] = USMAX;
+    g_fat_table[prev] = EOBLOCK;
+    g_fat_table[ptr] = USMAX;
     lseek(g_disk_fd, BLOCKSIZE * (g_superblock.data_offset + ptr), SEEK_SET);
     read(g_disk_fd, last, sizeof(Vnode));
     lseek(g_disk_fd, delDir->address, SEEK_SET);
@@ -702,11 +703,11 @@ int f_rmdir(const char* filename){
     delete(last);
   }
   
-  vector<int> usedBlocks = new vector<int>();
+  vector<int> usedBlocks;
   trackBlocks(usedBlocks, delDir);
 
   for (int i = 0; i < usedBlocks.size(); i++){
-    g_FAT_table[usedBlocks[i]] = USMAX;
+    g_fat_table[usedBlocks[i]] = USMAX;
   }
 
   return 0;
@@ -716,7 +717,7 @@ void trackBlocks(vector<int>& blocks, Vnode *node){
   int ptr = node->fatPtr;
 
   while (ptr != EOBLOCK){
-    usedBlocks.push_back(ptr);
+    blocks.push_back(ptr);
     if (node->type == 1){
       for (int i = 0; i < g_max_num_child_in_block; i++){
 	Vnode *child = new Vnode;
@@ -726,7 +727,7 @@ void trackBlocks(vector<int>& blocks, Vnode *node){
 	delete(child);
       }
     }
-    ptr = g_FAT_table[ptr];
+    ptr = g_fat_table[ptr];
   }
 
   return;
