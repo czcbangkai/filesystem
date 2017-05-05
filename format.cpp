@@ -1,4 +1,4 @@
-#include <cstring>
+
 #include <ctime>
 #include <unistd.h>
 #include <fcntl.h>
@@ -52,6 +52,7 @@ int main(int argc, char** argvs) {
 	vnode.gid = 0;
 	vnode.size = 1;
 	vnode.parent = NULL;
+	vnode.address = superBlock.blocksize * superBlock.data_offset;
 	vnode.permission = 0755;
 	vnode.type = 1;
 	vnode.timestamp = time(NULL);
@@ -63,17 +64,20 @@ int main(int argc, char** argvs) {
 	strncpy(test.name, "test.txt", 255);
 	test.uid = 0;
 	test.gid = 0;
-	test.size = 255;
+	test.size = BLOCKSIZE * 3;
 	test.parent = NULL;
+	test.address = superBlock.blocksize * (superBlock.data_offset + 2);
 	test.permission = 0755;
 	test.type = 0;
 	test.timestamp = time(NULL);
 	test.fatPtr = 2;
 
-	cout << test << endl;
+	// cout << test << endl;
 
 	fatTable[0] = 1;
-	fatTable[1] = fatTable[2] = EOBLOCK;
+	fatTable[1] = fatTable[4] = EOBLOCK;
+	fatTable[2] = 3;
+	fatTable[3] = 4;
 
 
 
@@ -84,7 +88,7 @@ int main(int argc, char** argvs) {
 	}
 
 	int res;
-	res = ftruncate(fd, diskSize * 1024);
+	res = ftruncate(fd, diskSize * 1024 * 1024);
 	if (res == -1) {
 		perror("ftruncate disk failed");
 		exit(-1);
@@ -144,9 +148,27 @@ int main(int argc, char** argvs) {
 		exit(-1);
 	}
 
-	char buf[255] = "hello world!";
-	res = write(fd, buf, 255);
-	if (res < 255) {
+	char buf[BLOCKSIZE] = {0};
+	memset(buf, '.', sizeof(buf));
+
+	res = write(fd, buf, sizeof(buf));
+	if (res < sizeof(buf)) {
+		perror("write test data failed");
+		exit(-1);
+	}
+
+	memset(buf, '?', sizeof(buf));
+
+	res = write(fd, buf, sizeof(buf));
+	if (res < sizeof(buf)) {
+		perror("write test data failed");
+		exit(-1);
+	}
+
+	memset(buf, '!', sizeof(buf));
+
+	res = write(fd, buf, sizeof(buf));
+	if (res < sizeof(buf)) {
 		perror("write test data failed");
 		exit(-1);
 	}

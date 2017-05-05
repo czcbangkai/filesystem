@@ -15,10 +15,10 @@ using namespace std;
 #define USMAX					65535
 #define EOBLOCK					65534
 
-#define F_READ					0x0001
-#define F_WRITE					0x0002
-#define F_RDWR					0x0003
-#define F_APPEND				0x0004
+#define F_READ					1
+#define F_WRITE					2
+#define F_RDWR					4
+#define F_APPEND				8
 
 #define S_SET					0
 #define S_CUR					1
@@ -43,15 +43,16 @@ public:
 class Vnode {
 public:
 	Vnode(void);
-  Vnode(string name_, int uid_, int gid_, int size_, int address_, Vnode* parent_, int permission_, int type_, int timestamp_, int fatPtr_);
+	Vnode(string name_, int uid_, int gid_, int size_, int addr_, Vnode* parent_, int permission_, int type_, int timestamp_, int fatPtr_);
 	~Vnode(void);
+
+	int writeToDisk(int fd);
 
 	friend ostream& operator<<(ostream& os, Vnode const& vnode) {
 		os << "name: " << string(vnode.name) << endl;
-		os << "uid: " << vnode.uid << endl;
-		os << "gid: " << vnode.gid << endl;
-		os << "size: " << vnode.size << endl;
-		// os << "parent name: " << string(vnode.parent->name) << endl;
+		os << "uid: " << dec << vnode.uid << endl;
+		os << "gid: " << dec << vnode.gid << endl;
+		os << "size: " << dec << vnode.size << endl;
 		os << "permission: " << oct << vnode.permission << endl;
 		os << "type: " << vnode.type << endl;
 		os << "timestamp: " << vnode.timestamp << endl;
@@ -63,12 +64,12 @@ public:
 	int uid;
 	int gid;
 	int size;
-  int address;
 	Vnode* parent;
 	int permission;	
 	int type;
 	int timestamp;
 	int fatPtr;
+	int address;
 };
 
 
@@ -121,6 +122,7 @@ public:
 	}
 
 	unsigned short getNextFreeBlock(void);
+	int writeToDisk(int fd, int fat_offset, int index);
 	unsigned short& operator[](size_t i);
 	unsigned short const& operator[](size_t i) const;
 

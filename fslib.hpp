@@ -4,15 +4,15 @@
 #include "vfs.hpp"
 #include "tokenizer.hpp"
 
-// extern FileTable 	g_file_table;
-// extern FatTable		g_fat_table;
 extern Tokenizer 	g_filename_tokenizer;
 
 
+Vnode* findVnode(vector<string>& filenames, int type);
 static int find_fat(unsigned short& start, int& offset);
-static void trackBlocks(vector<int>& blocks, Vnode *node);
-Vnode *findVnode(vector<string>& filenames, int type);
-int 				f_open(const char *filename, int flags);
+static int trackBlocks(vector<int>& blocks, Vnode *node);
+
+
+int 				f_open(const char *filename, int flags, int permission = 0755);
 size_t 				f_read(void *data, size_t size, int num, int fd);
 size_t 				f_write(void *data, size_t size, int num, int fd);
 int 				f_close(int fd);

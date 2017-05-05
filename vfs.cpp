@@ -1,5 +1,8 @@
 
 #include <cstring>
+#include <unistd.h>
+#include <fcntl.h>
+#include <sys/stat.h>
 #include <iostream>
 #include <vector>
 
@@ -14,18 +17,34 @@ Vnode::Vnode(void) {}
 
 Vnode::~Vnode(void) {}
 
-Vnode::Vnode(string name_, int uid_, int gid_, int size_, int address_, Vnode* parent_, int permission_, int type_, int timestamp_, int fatPtr_) {
+Vnode::Vnode(string name_, int uid_, int gid_, int size_, int addr_, Vnode* parent_, int permission_, int type_, int timestamp_, int fatPtr_) {
 	strncpy(name, name_.c_str(), 255);
 	uid = uid_;
 	gid = gid_;
 	size = size_;
-	address = address_;
+	address = addr_;
 	parent = parent_;
 	permission = permission_;
 	type = type_;
 	timestamp = timestamp_;
 	fatPtr = fatPtr_;
 }
+
+int Vnode::writeToDisk(int fd) {
+	int res;
+	res = lseek(fd, address, SEEK_SET);
+	if (res == -1) {
+		//errno;
+		return -1;
+	}
+	res = write(fd, this, sizeof(Vnode));
+	if (res < sizeof(Vnode)) {
+		//errno
+		return -1;
+	}
+	return 0;
+}
+
 
 
 
@@ -78,7 +97,7 @@ int FileTable::removeFileEntry(int fd) {
 		return -1;
 	}
 	ftEntry->removeSelf();
-	return -1;
+	return 0;
 }
 
 
@@ -101,6 +120,23 @@ unsigned short FatTable::getNextFreeBlock(void) {
 
 	return 0;
 }
+
+int FatTable::writeToDisk(int fd, int fat_offset, int index) {
+	int res;
+	res = lseek(fd, BLOCKSIZE * fat_offset + index * sizeof(unsigned short), SEEK_SET);
+	if (res == -1) {
+		//errno
+		return -1;
+	}
+	res = write(fd, &_fatTable[index], sizeof(unsigned short));
+	if (res < sizeof(unsigned short)) {
+		//errno
+		return -1;
+	}
+
+	return 0;
+}
+
 
 unsigned short& FatTable::operator[](size_t i) {
 	if (i >= FATSIZE) {

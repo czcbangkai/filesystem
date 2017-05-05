@@ -32,18 +32,20 @@ private:
 extern BuiltinList g_builtinList;
 
 
+static int cat(int input_fd, int output_fd);
+
 
 int builtin_exit(vector<string> const& argv);
 int builtin_help(vector<string> const& argv);
 int builtin_ls(vector<string> const& argv);
-int builtin_chmod(vector<string> const& argv);
-int builtin_mkdir(vector<string> const& argv);
-int builtin_rmdir(vector<string> const& argv);
-int builtin_cd(vector<string> const& argv);
 int builtin_pwd(vector<string> const& argv);
+int builtin_chmod(vector<string> const& argv);
+int builtin_cd(vector<string> const& argv);
 int builtin_cat(vector<string> const& argv);
-int builtin_more(vector<string> const& argv);
 int builtin_rm(vector<string> const& argv);
+int builtin_rmdir(vector<string> const& argv);
+int builtin_mkdir(vector<string> const& argv);
+
 
 
 
