@@ -10,6 +10,8 @@
 #include <string>
 #include <bitset>
 
+#include "utilities.hpp"
+
 // #include "vfs.hpp"
 // #include "mysh.hpp"
 
@@ -53,8 +55,8 @@ int main(void) {
 	// 		cout << (char)(buf[i]) << endl;
 	// }
 
-	bitset<16> x(15);
-	cout << hex << x << endl;
+	int x = 0666;
+	cout << decToOct(x) << endl;
 
 	return 0;
 }

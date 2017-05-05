@@ -177,7 +177,13 @@ void mainLoop(void) {
 
 	do {
 		string curPath = getCurrentPath();
-		cout << curPath << ": ";
+		cout << curPath;
+		if (g_super_user) {
+			cout << "su: ";
+		}
+		else {
+			cout << "pleb: ";
+		}
 		fflush(stdout);
 
 		line = readLine();

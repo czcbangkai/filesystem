@@ -45,7 +45,7 @@ int builtin_cat(vector<string> const& argv);
 int builtin_rm(vector<string> const& argv);
 int builtin_rmdir(vector<string> const& argv);
 int builtin_mkdir(vector<string> const& argv);
-
+int builtin_switch(vector<string> const& argv);
 
 
 

@@ -15,6 +15,7 @@
 #include "vfs.hpp"
 #include "tokenizer.hpp"
 #include "mysh.hpp"
+#include "utilities.hpp"
 
 using namespace std;
 
@@ -30,10 +31,6 @@ Vnode* findVnode(vector<string>& filenames, int type) {
 
 	Vnode* curFile;
 	int start = 0;
-
-	// for (string& n : filenames) {
-	// 	cout << "|" << n << "|" << endl;
-	// }
 
 	if (filenames[0] == "~") {
 		start = 1;
@@ -52,9 +49,6 @@ Vnode* findVnode(vector<string>& filenames, int type) {
 		if (curVnode->type == 1 && curVnode->size > 0) {
 			int numChild = curVnode->size;
 			int curPtr = curVnode->fatPtr;
-			// cout << "numChild: " << numChild << endl;
-			// cout << "curPtr: " << curPtr << endl;
-
 
 			while (curPtr != EOBLOCK && numChild > 0) {
 				bool foundDir = false;
@@ -143,11 +137,11 @@ int f_open(const char *filename, int flags, int permission) {
 	Vnode* curFile = findVnode(filenames, 0);
 	if (! curFile && ((flags & F_READ) || (flags & F_RDWR))) {
 		// errno
-		cout << "bad flags" << (flags & F_READ)  << ", " << (flags & F_RDWR) << endl;
+		cout << "bad flags" << endl;
 		return -1;
 	}
 
-	// cout << "herer" << endl;
+
 
 	if (! curFile) {
 		unsigned short free_fat = g_fat_table.getNextFreeBlock();
@@ -268,6 +262,7 @@ size_t 	f_read(void *data, size_t size, int num, int fd) {
 		print_error(__LINE__, __FUNCTION__, "flags error");
 		return 0;
 	}
+
 
 	Vnode* vnode = entry->vnode;
 	unsigned short fat_pos = vnode->fatPtr;

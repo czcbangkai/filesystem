@@ -30,6 +30,7 @@ BuiltinList::BuiltinList(void) {
 	createBuiltinFunc("pwd", &builtin_pwd);
 	createBuiltinFunc("cat", &builtin_cat);
 	createBuiltinFunc("rm", &builtin_rm); 
+	createBuiltinFunc("switch", &builtin_switch); 
 }
 
 BuiltinList::~BuiltinList(void) {}
@@ -276,6 +277,13 @@ int builtin_cat(vector<string> const& argv){
 	return 0;
 }
 
+
+int builtin_switch(vector<string> const& argv){
+
+	g_super_user = ! g_super_user;
+
+	return 0;
+}
 
 
 

@@ -3,6 +3,7 @@
 #include <regex.h>
 
 #include <iostream>
+#include <sstream>
 #include <vector>
 
 #include "utilities.hpp"
@@ -32,6 +33,14 @@ bool regexMatch(string str, string pattern) {
 bool isDigits(string const& str) {
 	return str.find_first_not_of("0123456789") == string::npos;
 }
+
+
+string decToOct(int dec) {
+	ostringstream o;
+    o << oct << dec;
+    return o.str();
+}
+
 
 char** stringVec2CharDoublePtr(vector<string> const& vec) {
 	if (vec.empty()) {
